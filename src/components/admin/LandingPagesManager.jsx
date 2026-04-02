@@ -7,6 +7,12 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 
+function safeFormat(dateVal, fmt) {
+    if (!dateVal) return '-';
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? '-' : format(d, fmt);
+}
+
 export default function LandingPagesManager() {
     const [landingPages, setLandingPages] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -71,7 +77,7 @@ export default function LandingPagesManager() {
                                             {lp.status}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell>{format(new Date(lp.created_date), 'dd/MM/yyyy')}</TableCell>
+                                    <TableCell>{safeFormat(lp.created_date, 'dd/MM/yyyy')}</TableCell>
                                     <TableCell className="font-mono text-xs">{lp.slug}</TableCell>
                                     <TableCell>
                                         <div className="flex gap-2">

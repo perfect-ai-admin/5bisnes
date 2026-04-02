@@ -516,56 +516,47 @@ function generatePublicPages() {
   console.log(`\n📊 Generated ${count} SEO-optimized public pages`);
 }
 
-// Copy base index.html to SPA routes that aren't pre-rendered
-// This ensures Vercel serves the SPA shell for non-portal routes
-function generateSPAFallbacks() {
-  const spaRoutes = [
-    // Landing pages
-    '/open-osek-patur',
-    '/ThankYou',
-    '/DigitalCard',
-    '/patur-vs-murshe',
-    '/patur-vs-murshe-quiz',
-    // Auth
-    '/login',
-    '/AgentLogin',
-    // App pages (noindex — just need SPA shell)
-    '/APP',
-    '/Home',
-    '/S',
-    '/Summary',
-    '/Checkout',
-    '/CheckoutSuccess',
-    '/MyProducts',
-    '/Branding',
-    '/SocialDesigns',
-    '/AiMentor',
-    '/AvatarAi',
-    '/BrandedLandingPage',
-    '/BrandedQuote',
-    '/Goal',
-    '/GoalPage',
-    '/InviteUser',
-    '/JourneyDashboard',
-    '/LandingPageManager',
-    '/LandingPagePreview',
-    '/LogoProjectPage',
-    '/LogoThankYou',
-    '/CreditsPage',
-    '/CloseOsekPaturCRM',
-    '/PricingPerfectBizAI',
-    '/AdminUsers',
-    // Admin / CRM
-    '/AdminDashboard',
-    '/AgentCRM',
-    '/AgentsManager',
-    '/LeadsAdmin',
+// Auto-discover SPA routes from pages.config.js exports
+function discoverAppRoutes() {
+  const pagesConfigPath = resolve(__dirname, '../src/pages.config.js');
+  const content = readFileSync(pagesConfigPath, 'utf-8');
+
+  // Extract page keys from the PAGES object (e.g., "APP": ..., "Home": ..., "blog/logo-leasek": ...)
+  const pageKeys = [];
+  const pagesMatch = content.match(/export\s+const\s+PAGES\s*=\s*\{([\s\S]*?)\}/);
+  if (pagesMatch) {
+    const body = pagesMatch[1];
+    const keyRegex = /"([^"]+)"\s*:/g;
+    let m;
+    while ((m = keyRegex.exec(body)) !== null) {
+      pageKeys.push(`/${m[1]}`);
+    }
+  }
+
+  // Add extra routes that aren't in PAGES but need SPA fallback
+  const extraRoutes = [
     '/CRM',
     '/CRM/leads',
     '/CRM/dashboard',
     '/CRM/tasks',
     '/CRM/settings',
+    '/DigitalCard',
+    '/open-osek-patur',
+    '/patur-vs-murshe',
+    '/patur-vs-murshe-quiz',
+    '/accountant-osek-patur',
+    '/ThankYou',
+    '/OsekPaturLanding',
   ];
+
+  const allRoutes = [...new Set([...pageKeys, ...extraRoutes])];
+  return allRoutes;
+}
+
+// Copy base index.html to SPA routes that aren't pre-rendered
+// This ensures Vercel serves the SPA shell for non-portal routes
+function generateSPAFallbacks() {
+  const spaRoutes = discoverAppRoutes();
 
   const baseHtml = getBaseHtml();
   let count = 0;

@@ -3,6 +3,12 @@ import { Badge } from '@/components/ui/badge';
 import { Activity } from 'lucide-react';
 import { format } from 'date-fns';
 
+function safeFormat(dateVal, fmt) {
+    if (!dateVal) return '-';
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? '-' : format(d, fmt);
+}
+
 export default function ActivityLogView() {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -43,7 +49,7 @@ export default function ActivityLogView() {
                                 {log.activity_type}
                             </Badge>
                             <span className="text-xs text-gray-500">
-                                {format(new Date(log.created_date), 'dd/MM/yyyy HH:mm')}
+                                {safeFormat(log.created_date, 'dd/MM/yyyy HH:mm')}
                             </span>
                         </div>
                         <p className="text-sm">{log.description}</p>

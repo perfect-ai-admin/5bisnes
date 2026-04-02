@@ -6,6 +6,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Search, Download, ChevronDown, ChevronUp, User, Mail, Phone, CreditCard, Hash, Clock, CheckCircle2, RefreshCw } from 'lucide-react';
+
+function safeFormat(dateVal, fmt) {
+    if (!dateVal) return '-';
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? '-' : format(d, fmt);
+}
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -65,7 +71,7 @@ export default function PaymentsManager() {
     const exportCSV = () => {
         const headers = ["תאריך", "סכום", "מטבע", "מוצר", "סוג", "סטטוס", "שם משתמש", "אימייל", "טלפון", "מזהה עסקה"];
         const rows = filteredPayments.map(p => [
-            format(new Date(p.created_date), 'yyyy-MM-dd HH:mm'),
+            safeFormat(p.created_date, 'yyyy-MM-dd HH:mm'),
             p.amount,
             p.currency,
             p.product_name,
@@ -203,7 +209,7 @@ export default function PaymentsManager() {
                                                             <ChevronDown className="w-4 h-4 text-gray-400" />
                                                         }
                                                     </TableCell>
-                                                    <TableCell className="text-sm">{format(new Date(payment.created_date), 'dd/MM/yyyy HH:mm')}</TableCell>
+                                                    <TableCell className="text-sm">{safeFormat(payment.created_date, 'dd/MM/yyyy HH:mm')}</TableCell>
                                                     <TableCell>
                                                         <div>
                                                             <span className="font-medium text-sm">{payment.user_name || 'לא ידוע'}</span>
@@ -279,7 +285,7 @@ export default function PaymentsManager() {
                                                                     <Clock className="w-4 h-4 text-gray-400" />
                                                                     <div>
                                                                         <p className="text-gray-500 text-xs">תאריך השלמה</p>
-                                                                        <p className="font-medium">{payment.completed_at ? format(new Date(payment.completed_at), 'dd/MM/yyyy HH:mm') : '-'}</p>
+                                                                        <p className="font-medium">{safeFormat(payment.completed_at, 'dd/MM/yyyy HH:mm')}</p>
                                                                     </div>
                                                                 </div>
                                                                 {payment.failure_reason && (

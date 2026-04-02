@@ -280,7 +280,7 @@ export default function UsersTable() {
                                     />
                                 </td>
                                 <td className="p-4 text-gray-600">
-                                    {new Date(user.created_date).toLocaleDateString('he-IL')}
+                                    {user.created_date && !isNaN(new Date(user.created_date).getTime()) ? new Date(user.created_date).toLocaleDateString('he-IL') : '-'}
                                 </td>
                                 <td className="p-4">
                                     <div className="font-medium">{user.full_name}</div>

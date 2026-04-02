@@ -6,6 +6,12 @@ import { Users, CreditCard, FileText, Activity, Image, Presentation, Smile, Glob
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 
+function safeFormat(dateVal, fmt) {
+    if (!dateVal) return '-';
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? '-' : format(d, fmt);
+}
+
 export default function DashboardOverview({ loginData }) {
     const [stats, setStats] = useState(null);
     const [recentActivity, setRecentActivity] = useState([]);
@@ -163,7 +169,7 @@ export default function DashboardOverview({ loginData }) {
                                     {recentUsers.map(u => (
                                         <tr key={u.id} className="border-b hover:bg-gray-50">
                                             <td className="p-3 text-gray-500 whitespace-nowrap">
-                                                {format(new Date(u.created_date), 'dd/MM/yy HH:mm')}
+                                                {safeFormat(u.created_date, 'dd/MM/yy HH:mm')}
                                             </td>
                                             <td className="p-3 font-medium">{u.full_name || '-'}</td>
                                             <td className="p-3 text-gray-600 text-xs">{u.email || '-'}</td>
@@ -228,7 +234,7 @@ export default function DashboardOverview({ loginData }) {
                                         </p>
                                     </div>
                                     <div className="text-xs text-muted-foreground text-left" dir="ltr">
-                                        {format(new Date(log.created_date), 'dd/MM/yyyy HH:mm')}
+                                        {safeFormat(log.created_date, 'dd/MM/yyyy HH:mm')}
                                     </div>
                                 </div>
                             ))

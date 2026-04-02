@@ -1,6 +1,69 @@
-// Migrated from Base44: activateGoal
+// activateGoal — self-contained (no _shared imports)
 
-import { supabaseAdmin, getUser, corsHeaders, jsonResponse, errorResponse } from '../_shared/supabaseAdmin.ts';
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+function createUserClient(req: Request) {
+  const authHeader = req.headers.get('Authorization') || '';
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } }
+  });
+}
+
+async function getUser(req: Request) {
+  const userClient = createUserClient(req);
+  const { data: { user }, error } = await userClient.auth.getUser();
+  if (error || !user) return null;
+  return user;
+}
+
+const ALLOWED_ORIGINS = [
+  'https://perfect1.co.il',
+  'https://www.perfect1.co.il',
+  'https://perfect-dashboard.com',
+  'https://www.perfect-dashboard.com',
+  'https://one-pai.com',
+  'https://www.one-pai.com',
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
+
+function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  if (origin.startsWith('https://') && origin.endsWith('.vercel.app')) return true;
+  return false;
+}
+
+function getCorsHeaders(req?: Request): Record<string, string> {
+  const origin = req?.headers?.get('Origin') || '';
+  const allowedOrigin = isAllowedOrigin(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+}
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': ALLOWED_ORIGINS[0],
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+function jsonResponse(data: unknown, status = 200, req?: Request) {
+  const headers = req ? getCorsHeaders(req) : corsHeaders;
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...headers, 'Content-Type': 'application/json' },
+  });
+}
+
+function errorResponse(message: string, status = 500, req?: Request) {
+  return jsonResponse({ error: message }, status, req);
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -68,6 +131,19 @@ Deno.serve(async (req) => {
         .from('customers')
         .update({ status: 'active' })
         .eq('id', customer.id);
+    }
+
+    // Trigger Mentor AI — fire-and-forget
+    if (supabaseUrl && supabaseAnonKey) {
+      fetch(`${supabaseUrl}/functions/v1/webhookGoalMentor`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}` },
+        body: JSON.stringify({
+          event_type: 'goal_started',
+          customer_id: userGoal.customer_id,
+          goal_id: user_goal_id,
+        }),
+      }).catch((e: Error) => console.warn('webhookGoalMentor trigger failed:', e.message));
     }
 
     return jsonResponse({ success: true, message: 'המטרה הופעלה בהצלחה' });

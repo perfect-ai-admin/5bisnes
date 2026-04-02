@@ -13,6 +13,12 @@ import { Save, X, User, Shield, Target, CreditCard, FileText, Activity, MousePoi
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
+function safeFormat(dateVal, fmt) {
+    if (!dateVal) return '-';
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? '-' : format(d, fmt);
+}
+
 export default function UserProfileModal({ user, onClose, onUpdate }) {
     const [formData, setFormData] = useState({
         full_name: user.full_name || '',
@@ -144,15 +150,12 @@ export default function UserProfileModal({ user, onClose, onUpdate }) {
                                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
                                     <Activity className="w-5 h-5 text-purple-600 mx-auto mb-1" />
                                     <p className="text-sm font-bold text-purple-700">
-                                        {extendedData.payments?.filter(p => p.status === 'completed').length > 0
-                                            ? format(new Date(
-                                                extendedData.payments
-                                                    .filter(p => p.status === 'completed')
-                                                    .sort((a, b) => new Date(b.completed_at || b.created_date) - new Date(a.completed_at || a.created_date))[0]
-                                                    ?.completed_at || extendedData.payments.filter(p => p.status === 'completed').sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0]?.created_date
-                                            ), 'dd/MM/yyyy')
-                                            : '---'
-                                        }
+                                        {(() => {
+                                            const completed = extendedData.payments?.filter(p => p.status === 'completed') || [];
+                                            if (completed.length === 0) return '---';
+                                            const sorted = completed.sort((a, b) => new Date(b.completed_at || b.created_date || 0) - new Date(a.completed_at || a.created_date || 0));
+                                            return safeFormat(sorted[0]?.completed_at || sorted[0]?.created_date, 'dd/MM/yyyy');
+                                        })()}
                                     </p>
                                     <p className="text-xs text-purple-600">תשלום אחרון</p>
                                 </div>
@@ -375,7 +378,7 @@ export default function UserProfileModal({ user, onClose, onUpdate }) {
                                             ) : (
                                                 extendedData?.payments?.map(p => (
                                                     <TableRow key={p.id}>
-                                                        <TableCell>{format(new Date(p.created_date), 'dd/MM/yyyy')}</TableCell>
+                                                        <TableCell>{safeFormat(p.created_date, 'dd/MM/yyyy')}</TableCell>
                                                         <TableCell>{p.product_name}</TableCell>
                                                         <TableCell>₪{p.amount}</TableCell>
                                                         <TableCell><Badge>{p.status}</Badge></TableCell>
@@ -414,7 +417,7 @@ export default function UserProfileModal({ user, onClose, onUpdate }) {
                                                         <TableRow key={lp.id}>
                                                             <TableCell>{lp.business_name}</TableCell>
                                                             <TableCell><Badge>{lp.status}</Badge></TableCell>
-                                                            <TableCell>{format(new Date(lp.created_date), 'dd/MM/yyyy')}</TableCell>
+                                                            <TableCell>{safeFormat(lp.created_date, 'dd/MM/yyyy')}</TableCell>
                                                         </TableRow>
                                                     ))
                                                 )}
@@ -445,7 +448,7 @@ export default function UserProfileModal({ user, onClose, onUpdate }) {
                                                         <TableRow key={lead.id}>
                                                             <TableCell>{lead.name}</TableCell>
                                                             <TableCell>{lead.phone}</TableCell>
-                                                            <TableCell>{format(new Date(lead.created_date), 'dd/MM/yyyy')}</TableCell>
+                                                            <TableCell>{safeFormat(lead.created_date, 'dd/MM/yyyy')}</TableCell>
                                                         </TableRow>
                                                     ))
                                                 )}
@@ -485,7 +488,7 @@ export default function UserProfileModal({ user, onClose, onUpdate }) {
                                                                 ? JSON.stringify(log.details) 
                                                                 : log.details}
                                                         </TableCell>
-                                                        <TableCell dir="ltr" className="text-left">{format(new Date(log.created_date), 'dd/MM/yyyy HH:mm')}</TableCell>
+                                                        <TableCell dir="ltr" className="text-left">{safeFormat(log.created_date, 'dd/MM/yyyy HH:mm')}</TableCell>
                                                     </TableRow>
                                                 ))
                                             )}

@@ -215,6 +215,19 @@ Deno.serve(async (req) => {
     const complexityMap: Record<string, string> = { simple: 'פשוטה', medium: 'בינונית', complex: 'מורכבת' };
     const complexityLabel = complexityMap[plan.goal_complexity] || 'רגילה';
 
+    // Map goal_complexity to goal_type
+    const complexityToGoalType: Record<string, string> = {
+      simple: 'quick',
+      medium: 'medium',
+      complex: 'long',
+    };
+
+    // Estimate target_date based on complexity
+    const daysEstimate = plan.goal_complexity === 'simple' ? 14
+      : plan.goal_complexity === 'complex' ? 90 : 30;
+    const targetDate = new Date(Date.now() + daysEstimate * 86400000)
+      .toISOString().split('T')[0];
+
     const commonData = {
       title: plan.goal_title || goalData.title,
       description: goalData.description || 'תוכנית עבודה ממוקדת',
@@ -222,7 +235,15 @@ Deno.serve(async (req) => {
       tasks: tasksWithIds,
       plan_summary: plan.plan_summary || 'לא התקבל תקציר.',
       clarifying_questions: plan.clarifying_questions || [],
-      ai_insight: `המנטור בנה תוכנית ${complexityLabel} עם ${tasksWithIds.length} צעדים.`
+      ai_insight: `המנטור בנה תוכנית ${complexityLabel} עם ${tasksWithIds.length} צעדים.`,
+      // New structured fields
+      goal_type: complexityToGoalType[plan.goal_complexity] || 'medium',
+      complexity_level: plan.goal_complexity || 'medium',
+      priority_level: goalData.priority_level || 3,
+      target_date: goalData.target_date || targetDate,
+      success_definition: plan.next_step
+        ? `השלמת כל ${tasksWithIds.length} המשימות. ${plan.next_step}`
+        : `השלמת כל ${tasksWithIds.length} המשימות בתוכנית.`,
     };
 
     let resultGoal: any;

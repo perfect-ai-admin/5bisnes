@@ -658,6 +658,26 @@ ${formatMemoryItems(memoryItems)}
       await sendWhatsApp(customer.phone_e164, responseText);
     }
 
+    // ── Step 11b: Call memoryWriter for additional memory extraction (non-blocking)
+    {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const conversationText = `User: ${message}\nMentor: ${responseText}`;
+
+      fetch(`${supabaseUrl}/functions/v1/memoryWriter`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({
+          customer_id: customerId,
+          conversation_text: conversationText,
+          conversation_id: conversation?.id || null,
+        }),
+      }).catch((e: Error) => console.warn('memoryWriter call failed:', e.message));
+    }
+
     // ── Step 12: Log activity ─────────────────────────────────────────────────
     db.insert('activity_log', {
       customer_id: customerId,

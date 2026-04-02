@@ -64,6 +64,24 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Load memory_items for the customer (all layers)
+    let memoryItemsText = '';
+    if (effectiveUserId) {
+      const { data: memoryItems } = await supabaseAdmin
+        .from('memory_items')
+        .select('layer, category, memory_type, title, content, importance_score')
+        .eq('customer_id', effectiveUserId)
+        .eq('is_active', true)
+        .order('importance_score', { ascending: false })
+        .limit(20);
+
+      if (memoryItems && memoryItems.length > 0) {
+        memoryItemsText = memoryItems
+          .map((m: any) => `[${m.layer || m.memory_type}/${m.category || ''}] ${m.title}: ${m.content}`)
+          .join('\n');
+      }
+    }
+
     // Fetch full business context from DB
     let journey = null;
     let activeGoals: any[] = [];
@@ -164,6 +182,11 @@ ${personalizedContext ? `
 - זיכרון AI: ${JSON.stringify(personalizedContext.ai_memory || {})}
 ` : ''}
 
+${memoryItemsText ? `
+## זיכרונות קודמים:
+${memoryItemsText}
+` : ''}
+
 ${businessContext}
 
 המשימה שלך:
@@ -237,6 +260,27 @@ ${businessContext}
       }
     } catch (memErr) {
       console.warn('Failed to save conversation:', (memErr as Error).message);
+    }
+
+    // Call memoryWriter to extract and save memory items (non-blocking)
+    if (effectiveUserId) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const conversationText = `User: ${message}\nMentor: ${result.response}`;
+
+      fetch(`${supabaseUrl}/functions/v1/memoryWriter`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify({
+          customer_id: effectiveUserId,
+          conversation_text: conversationText,
+        }),
+      }).catch((err: Error) => {
+        console.warn('memoryWriter call failed:', err.message);
+      });
     }
 
     return jsonResponse(result);

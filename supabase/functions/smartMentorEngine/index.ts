@@ -20,8 +20,8 @@ async function getOpenAIKey(): Promise<string> {
   throw new Error('OPENAI_API_KEY not found in env or vault');
 }
 
-const GREENAPI_INSTANCE_ID = '7103857301';
-const GREENAPI_TOKEN = '72f2949724084044a99d6cdaab4976e1d1a00029bf7d467f84';
+const GREENAPI_INSTANCE_ID = Deno.env.get('GREENAPI_INSTANCE_ID') || '';
+const GREENAPI_TOKEN = Deno.env.get('GREENAPI_TOKEN') || '';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -146,7 +146,7 @@ async function sendWhatsApp(phone: string, message: string): Promise<void> {
 
 // ─── Find customer ───────────────────────────────────────────────────────────
 
-const CUSTOMER_COLUMNS = 'id,full_name,phone_e164,email,business_type,experience_level,business_state,business_journey_answers,business_plan,client_tasks';
+const CUSTOMER_COLUMNS = 'id,full_name,phone_e164,email,business_type,business_stage,experience_level,communication_style,business_state,business_journey_answers,business_plan,client_tasks';
 
 async function findCustomer(db: ReturnType<typeof getSupabase>, customerId: string): Promise<any | null> {
   // Try by UUID
@@ -188,7 +188,7 @@ function safeJson(value: unknown): string {
 function formatMemoryItems(items: any[]): string {
   if (!items || items.length === 0) return 'אין זיכרון שמור.';
   return items
-    .map((m) => `[${m.memory_type || 'כללי'}] ${m.title}: ${m.content}`)
+    .map((m) => `[${m.layer || 'mid_term'}/${m.category || m.memory_type || 'כללי'}] ${m.title}: ${m.content} (חשיבות: ${m.importance_score || 5})`)
     .join('\n');
 }
 
@@ -337,6 +337,36 @@ Deno.serve(async (req) => {
       mentorPlan = planRows[0] || null;
     }
 
+    // ── Step 3b: Load goal_steps (incomplete) ────────────────────────────────
+    let activeSteps: any[] = [];
+    if (activeGoal?.id) {
+      activeSteps = await db.query(
+        'goal_steps',
+        {
+          goal_id: `eq.${activeGoal.goal_id || activeGoal.id}`,
+          customer_id: `eq.${customerId}`,
+          status: 'neq.completed',
+          order: 'order_index.asc',
+          limit: '10',
+        },
+        'id,title,status,order_index'
+      );
+    }
+
+    // ── Step 3c: Load goal_milestones ──────────────────────────────────────
+    let milestones: any[] = [];
+    if (activeGoal?.id) {
+      milestones = await db.query(
+        'goal_milestones',
+        {
+          goal_id: `eq.${activeGoal.id}`,
+          order: 'order_index.asc',
+          limit: '10',
+        },
+        'id,title,status,estimated_days,completed_at'
+      );
+    }
+
     // ── Step 4: Load memory_items ─────────────────────────────────────────────
     const memoryItems = await db.query(
       'memory_items',
@@ -346,7 +376,7 @@ Deno.serve(async (req) => {
         order: 'importance_score.desc',
         limit: '20',
       },
-      'id,memory_type,title,content,importance_score'
+      'id,memory_type,title,content,importance_score,layer,category'
     );
 
     // ── Step 5: Load or create mentor_conversation ────────────────────────────
@@ -419,7 +449,7 @@ Deno.serve(async (req) => {
     // ── Step 7: Build System Prompt ───────────────────────────────────────────
     const customerName = customer.full_name || 'לקוח';
     const businessType = businessState?.business_type || customer.business_type || 'לא ידוע';
-    const businessStage = businessState?.stage || 'לא ידוע';
+    const businessStage = customer.business_stage || businessState?.stage || 'לא ידוע';
     const experienceLevel = businessState?.experience_level || customer.experience_level || 'לא ידוע';
     const mainChallenge = businessState?.main_challenge || '';
     const recommendedFocus = businessState?.recommended_focus || '';
@@ -458,44 +488,63 @@ Deno.serve(async (req) => {
       if (bp.length < 500) planSection = `\n## תוכנית עסקית\n${bp}`;
     }
 
-    const systemPrompt = `אתה מנטור עסקי אישי בפרפקט וואן. שמך: המנטור.
+    // Format active steps
+    const activeStepsText = activeSteps.length > 0
+      ? activeSteps.map((s: any) => `- ${s.title} (${s.status})`).join('\n')
+      : 'אין משימות פעילות';
 
-## פרטי הלקוח
-- שם: ${customerName}
-- סוג עסק: ${businessType}
-- שלב עסקי: ${businessStage}
-- ניסיון: ${experienceLevel}
-${mainChallenge ? `- אתגר מרכזי: ${mainChallenge}` : ''}
-${recommendedFocus ? `- פוקוס מומלץ: ${recommendedFocus}` : ''}
-${businessSummary ? `- סיכום מצב: ${businessSummary}` : ''}
+    // Format milestones
+    const milestonesText = milestones.length > 0
+      ? milestones.map((m: any) => `- ${m.title} (${m.status})${m.completed_at ? ' [הושלם]' : ''}`).join('\n')
+      : 'אין אבני דרך';
+
+    // Format last 10 messages from conversation history
+    const last10Messages = conversationHistory.slice(-10)
+      .map((m: any) => `${m.role === 'user' ? 'לקוח' : 'מנטור'}: ${m.content}`)
+      .join('\n');
+
+    const systemPrompt = `אתה מנטור עסקי אישי בפרפקט וואן. שמך: המנטור.
+אתה מלווה בעלי עסקים קטנים ועצמאיים בישראל להשיג את המטרות שלהם.
+
+## מידע שאתה מקבל
+שם הלקוח: ${customerName}
+סוג עסק: ${businessType}
+שלב עסקי: ${businessStage}
+רמת ניסיון: ${experienceLevel}
+${mainChallenge ? `אתגר מרכזי: ${mainChallenge}` : ''}
+${recommendedFocus ? `פוקוס מומלץ: ${recommendedFocus}` : ''}
+${businessSummary ? `סיכום מצב: ${businessSummary}` : ''}
 ${journeySection}${profileSection}${planSection}
 
-## המטרה הפעילה
-- שם: ${goalTitle || 'לא הוגדרה מטרה'}
-- סוג: ${activeGoal?.goal_type || 'לא ידוע'} (quick/medium/long)
-- מורכבות: ${activeGoal?.complexity_level || 'לא ידוע'}
-- סטטוס: ${activeGoal?.status || 'לא ידוע'}
-- התקדמות: ${activeGoal?.progress || 0}%
+מטרה נוכחית: ${goalTitle || 'לא הוגדרה מטרה'} (${activeGoal?.progress || 0}% בוצע)
+סוג מטרה: ${activeGoal?.goal_type || 'לא ידוע'} | מורכבות: ${activeGoal?.complexity_level || 'לא ידוע'} | סטטוס: ${activeGoal?.status || 'לא ידוע'}
 
-## תוכנית מנטור
-${mentorPlan?.plan_title || 'אין תוכנית פעילה'}
-שלב נוכחי: ${mentorPlan?.current_phase || 'לא ידוע'}
+תוכנית מנטור: ${mentorPlan?.plan_title || 'אין תוכנית פעילה'} (שלב: ${mentorPlan?.current_phase || 'לא ידוע'})
 
-## זיכרון רלוונטי
+משימות פעילות:
+${activeStepsText}
+
+אבני דרך:
+${milestonesText}
+
+זיכרונות:
 ${formatMemoryItems(memoryItems)}
 
-## מצב השיחה הנוכחי: ${currentConversationState}
+שיחות אחרונות:
+${last10Messages || 'אין היסטוריה'}
 
-## כללי שיחה:
-1. שאל שאלה אחת בכל פעם
-2. אל תשלח הודעות ארוכות — מקסימום 3-4 שורות
-3. תמיד סיים עם שאלה או משימה קטנה
-4. דבר בגוף שני יחיד, בעברית פשוטה
-5. אל תשתמש באימוג'ים יותר מדי — מקסימום 1-2
-6. אל תדבר כמו מערכת — דבר כמו מנטור אנושי
-7. תמיד התייחס למה שהלקוח אמר לפני שאתה ממשיך
+מצב השיחה הנוכחי: ${currentConversationState}
 
-## לפי מצב השיחה:
+## עקרונות השיחה
+- קצרה: מקסימום 3-4 שורות. אנשים קוראים בוואטסאפ תוך כדי עבודה.
+- אנושית: דבר כמו מנטור אמיתי, לא כמו מערכת. גוף שני יחיד, עברית פשוטה.
+- נעימה: חמה, מעודדת, אמפתית. אל תשפוט, תלווה.
+- ממוקדת פעולה: תמיד סיים עם שאלה או משימה קטנה אחת.
+- אל תשתמש ביותר מ-1-2 אימוג'ים.
+- תמיד התייחס למה שהלקוח אמר לפני שאתה ממשיך.
+- כל הודעה צריכה להיות קלה לקריאה בוואטסאפ.
+
+## לפי מצב השיחה
 - discovery: תברר מה הלקוח רוצה, למה עכשיו, מה תקוע
 - planning: תבנה תוכנית, תציע צעדים, תוודא שהלקוח מסכים
 - execution: תעקוב אחרי משימות, תדחוף בעדינות, תחגוג הצלחות
@@ -503,7 +552,7 @@ ${formatMemoryItems(memoryItems)}
 - review: תסכם מה עבד, מה לא, תציע התאמות
 - completed: תחגוג, תסכם learning, תציע מטרה הבאה
 
-## פורמט תגובה:
+## פורמט תגובה
 החזר JSON בפורמט הבא בלבד:
 {
   "response_text": "ההודעה ללקוח",
@@ -596,12 +645,24 @@ ${formatMemoryItems(memoryItems)}
             updated_at: new Date().toISOString(),
           }).catch((e: Error) => console.warn('memory_items update failed:', e.message));
         } else {
+          // Calculate layer based on importance_score
+          const score = mu.importance_score ?? 5;
+          const layer = score >= 7 ? 'long_term' : score >= 4 ? 'mid_term' : 'short_term';
+          const expires_at = layer === 'long_term'
+            ? null
+            : layer === 'mid_term'
+              ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+              : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
           db.insert('memory_items', {
             customer_id: customerId,
             memory_type: mu.memory_type || 'general',
             title: mu.title,
             content: mu.content,
-            importance_score: mu.importance_score ?? 5,
+            importance_score: score,
+            layer,
+            category: mu.memory_type || 'general',
+            expires_at,
             is_active: true,
             source_conversation_id: conversation?.id || null,
             source: 'main',

@@ -72,7 +72,36 @@ Deno.serve(async (req) => {
 
     console.log(`Lead channels: ${JSON.stringify(channels)}, phone: ${destPhone}, email: ${destEmail}`);
 
-    // 2. Save to leads table (CRM)
+    // 2. Check if returning customer (duplicate phone)
+    const cleanPhone = phone.trim().replace(/\D/g, '');
+    const phoneSuffix = cleanPhone.slice(-7);
+    const { data: existingLeads } = await supabaseAdmin
+      .from('leads')
+      .select('id, name, phone, pipeline_stage, status, contact_attempts')
+      .eq('source', 'sales_portal')
+      .or(`phone.ilike.%${phoneSuffix}%`);
+
+    if (existingLeads && existingLeads.length > 0) {
+      // Returning customer - update existing, skip all notifications
+      const existing = existingLeads[0];
+      await supabaseAdmin
+        .from('leads')
+        .update({
+          contact_attempts: ((existing as any).contact_attempts || 0) + 1,
+          last_interaction_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id);
+      console.log(`Returning customer: ${existing.phone} (lead ${existing.id}). Skipping notifications.`);
+      return jsonResponse({
+        success: true,
+        message: 'Returning customer - no notifications sent',
+        leadId: existing.id,
+        is_returning: true,
+        channels: []
+      }, 200, req);
+    }
+
+    // New customer only - save lead and send notifications
     const leadData = {
       name: name || 'אתר',
       phone: phone.trim(),
@@ -95,7 +124,7 @@ Deno.serve(async (req) => {
       .select()
       .single();
     if (leadErr) throw new Error(leadErr.message);
-    console.log('Lead saved to CRM:', leadResult.id);
+    console.log('New lead saved to CRM:', leadResult.id);
 
     // 3. Also save crm_lead (per-user CRM view)
     try {

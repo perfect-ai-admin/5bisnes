@@ -1,7 +1,7 @@
 // webhookGoalMentor v11 — Goal Engine: classify + plan + milestone + conversation + adaptive WhatsApp
 
-const GREENAPI_INSTANCE_ID = '7103857301';
-const GREENAPI_TOKEN = '72f2949724084044a99d6cdaab4976e1d1a00029bf7d467f84';
+const GREENAPI_INSTANCE_ID = Deno.env.get('GREENAPI_INSTANCE_ID') || '';
+const GREENAPI_TOKEN = Deno.env.get('GREENAPI_TOKEN') || '';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

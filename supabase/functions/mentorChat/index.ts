@@ -49,18 +49,18 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Get personalized context from conversation summaries
+    // Get personalized context from mentor_conversations
     let personalizedContext = null;
     if (effectiveUserId) {
-      const { data: summaries } = await supabaseAdmin
-        .from('conversation_summaries')
-        .select('key_facts, ai_memory, completed_tasks')
+      const { data: convData } = await supabaseAdmin
+        .from('mentor_conversations')
+        .select('conversation_state, summary_short, summary_long, sentiment')
         .eq('customer_id', effectiveUserId)
-        .order('created_at', { ascending: false })
+        .order('started_at', { ascending: false })
         .limit(1);
 
-      if (summaries && summaries.length > 0) {
-        personalizedContext = summaries[0];
+      if (convData && convData.length > 0) {
+        personalizedContext = convData[0];
       }
     }
 
@@ -119,14 +119,18 @@ Deno.serve(async (req) => {
         goalSteps = stepsData || [];
       }
 
-      // 4. Recent conversation messages
+      // 4. Recent conversation messages (New Schema: mentor_messages)
       const { data: messagesData } = await supabaseAdmin
-        .from('conversation_messages')
-        .select('role, content, created_at')
+        .from('mentor_messages')
+        .select('sender_type, message_text, created_at')
         .eq('customer_id', effectiveUserId)
         .order('created_at', { ascending: false })
         .limit(20);
-      recentMessages = messagesData || [];
+      recentMessages = (messagesData || []).map((m: any) => ({
+        role: m.sender_type === 'user' ? 'user' : 'assistant',
+        content: m.message_text,
+        created_at: m.created_at,
+      }));
 
       // 5. Recent goal interactions
       const { data: interactionsData } = await supabaseAdmin
@@ -178,8 +182,9 @@ ${userProfile ? `שם הלקוח: ${userProfile.name || userProfile.full_name ||
 
 ${personalizedContext ? `
 הקשר מותאם אישית על המשתמש:
-- עובדות מפתח: ${JSON.stringify(personalizedContext.key_facts || {})}
-- זיכרון AI: ${JSON.stringify(personalizedContext.ai_memory || {})}
+- מצב שיחה: ${personalizedContext.conversation_state || 'לא ידוע'}
+- סיכום קצר: ${personalizedContext.summary_short || ''}
+- סנטימנט: ${personalizedContext.sentiment || ''}
 ` : ''}
 
 ${memoryItemsText ? `
@@ -229,32 +234,51 @@ ${businessContext}
       }
     }
 
-    // Save conversation to messages table
+    // Save conversation to New Schema (mentor_conversations + mentor_messages)
     try {
       if (effectiveUserId) {
-        // Find or create conversation
+        // Find or create mentor_conversation
         let { data: conv } = await supabaseAdmin
-          .from('conversations')
+          .from('mentor_conversations')
           .select('id')
           .eq('customer_id', effectiveUserId)
-          .eq('status', 'active')
+          .order('started_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
+
+        if (!conv) {
+          const { data: newConv } = await supabaseAdmin
+            .from('mentor_conversations')
+            .insert({
+              customer_id: effectiveUserId,
+              channel: 'web',
+              conversation_state: 'discovery',
+              started_at: new Date().toISOString(),
+              source: 'main',
+            })
+            .select('id')
+            .single();
+          conv = newConv;
+        }
 
         if (conv) {
           // Save user message
-          await supabaseAdmin.from('conversation_messages').insert({
+          await supabaseAdmin.from('mentor_messages').insert({
             conversation_id: conv.id,
-            direction: 'inbound',
-            content: message,
-            agent_code: 'mentorChat'
+            customer_id: effectiveUserId,
+            sender_type: 'user',
+            message_text: message,
+            message_type: 'text',
+            source: 'main',
           });
-          // Save bot response
-          await supabaseAdmin.from('conversation_messages').insert({
+          // Save mentor response
+          await supabaseAdmin.from('mentor_messages').insert({
             conversation_id: conv.id,
-            direction: 'outbound',
-            content: result.response,
-            agent_code: 'mentorChat'
+            customer_id: effectiveUserId,
+            sender_type: 'mentor',
+            message_text: result.response,
+            message_type: 'text',
+            source: 'main',
           });
         }
       }

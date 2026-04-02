@@ -21,8 +21,34 @@ Deno.serve(async (req) => {
       return errorResponse('Name and phone are required', 400, req);
     }
 
-    // Create lead using service role (public endpoint, no auth required)
-    // source separates data between projects sharing the same DB
+    // Check if this phone already exists (returning customer filter)
+    const cleanPhone = payload.phone.replace(/\D/g, '');
+    const phoneSuffix = cleanPhone.slice(-7);
+    const { data: existingLeads } = await supabaseAdmin
+      .from('leads')
+      .select('id, name, phone, pipeline_stage, status, created_at')
+      .eq('source', payload.source || 'sales_portal')
+      .or(`phone.ilike.%${phoneSuffix}%`);
+
+    if (existingLeads && existingLeads.length > 0) {
+      // Returning customer - update existing lead, do NOT send new lead notifications
+      const existing = existingLeads[0];
+      const { error: updateErr } = await supabaseAdmin
+        .from('leads')
+        .update({
+          contact_attempts: (existing as any).contact_attempts ? (existing as any).contact_attempts + 1 : 1,
+          last_interaction_at: new Date().toISOString(),
+          utm_source: payload.utm_source || undefined,
+          utm_medium: payload.utm_medium || undefined,
+          utm_campaign: payload.utm_campaign || undefined,
+        })
+        .eq('id', existing.id);
+      if (updateErr) console.warn('Failed to update returning lead:', updateErr.message);
+      console.log(`Returning customer detected: ${existing.phone} (lead ${existing.id}). Skipping new lead flow.`);
+      return jsonResponse({ success: true, lead: existing, is_returning: true }, 200, req);
+    }
+
+    // New customer only - create lead and send notifications
     const { data: lead, error: leadError } = await supabaseAdmin
       .from('leads')
       .insert({

@@ -35,12 +35,14 @@ ${goalContext}
 4. אם המשתמש מהסס — תן לו 2-3 אפשרויות לבחירה
 5. תמיד דבר בעברית חמה ומעודדת
 6. כשיש מספיק מידע — המלץ על מטרה קונקרטית
+7. תמיד נסה ללמוד על העסק: מה העיסוק, באיזה שלב העסק (starting/growing/stable), רמת הניסיון (beginner/intermediate/advanced), וסגנון תקשורת מועדף (formal/casual/brief/detailed)
 
 החזר JSON בפורמט הבא:
 {
   "response": "התשובה שלך בעברית...",
   "next_step": "שלב הבא בתהליך (onboarding/select_category/define_goal/confirm/done)",
-  "suggested_goal": { "title": "...", "description": "...", "category": "..." } // null אם עוד לא הגיע הזמן
+  "suggested_goal": { "title": "...", "description": "...", "category": "..." },
+  "customer_profile": { "business_type": "...", "business_stage": "starting|growing|stable", "experience_level": "beginner|intermediate|advanced", "communication_style": "formal|casual|brief|detailed" }
 }`;
 
     const completion = await openai.chat.completions.create({
@@ -71,6 +73,22 @@ ${goalContext}
         goal_data: goal_data || null,
         updated_at: new Date().toISOString()
       };
+
+      // Update customer profile fields if AI extracted them
+      if (result.customer_profile) {
+        const profileUpdate: Record<string, string> = {};
+        if (result.customer_profile.business_type) profileUpdate.business_type = result.customer_profile.business_type;
+        if (result.customer_profile.business_stage) profileUpdate.business_stage = result.customer_profile.business_stage;
+        if (result.customer_profile.experience_level) profileUpdate.experience_level = result.customer_profile.experience_level;
+        if (result.customer_profile.communication_style) profileUpdate.communication_style = result.customer_profile.communication_style;
+
+        if (Object.keys(profileUpdate).length > 0) {
+          await supabaseAdmin.from('customers')
+            .update(profileUpdate)
+            .eq('id', effectiveUserId)
+            .catch((e: Error) => console.warn('customers profile update failed:', e.message));
+        }
+      }
 
       if (result.next_step === 'done' && result.suggested_goal) {
         // Goal confirmed — upsert customer_goals with flow_data

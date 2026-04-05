@@ -104,6 +104,36 @@ export default function UnifiedLeadForm({
         referrer
       });
 
+      // קריאה ל-submitLeadToN8N כדי להפעיל את הבוט וודוא שהלידים משודרים לN8N
+      try {
+        const submitResponse = await fetch(
+          import.meta.env.VITE_SUPABASE_URL + '/functions/v1/submitLeadToN8N',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+              name: formData.name,
+              phone: formData.phone,
+              email: formData.email || undefined,
+              pageSlug: effectiveSource,
+              businessName: sourcePage || 'Landing Page'
+            })
+          }
+        );
+
+        if (!submitResponse.ok) {
+          console.warn('submitLeadToN8N response not ok:', submitResponse.status);
+        } else {
+          console.log('Lead sent to submitLeadToN8N successfully');
+        }
+      } catch (submitErr) {
+        console.warn('submitLeadToN8N call failed:', submitErr.message);
+        // Continue anyway - lead was created in DB
+      }
+
       // Tracking
       trackLeadSubmit(newLead);
 

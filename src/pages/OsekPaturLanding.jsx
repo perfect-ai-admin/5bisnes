@@ -102,50 +102,45 @@ function LeadForm({
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <Input
-            value={form.name}
-            onChange={(e) => set('name', e.target.value)}
-            placeholder="שם מלא"
-            required
-            className="h-13 rounded-xl text-base border-gray-200 bg-white focus:border-portal-teal focus:ring-portal-teal text-right"
-            style={{ height: '52px' }}
-          />
-        </div>
+      <form onSubmit={handleSubmit} className="space-y-2.5">
+        <Input
+          value={form.name}
+          onChange={(e) => set('name', e.target.value)}
+          placeholder="שם מלא"
+          required
+          className="h-11 sm:h-[52px] rounded-lg sm:rounded-xl text-sm sm:text-base border-gray-200 bg-white focus:border-portal-teal focus:ring-portal-teal text-right"
+        />
 
-        <div>
-          <Input
-            value={form.phone}
-            onChange={(e) => set('phone', e.target.value)}
-            placeholder="טלפון נייד"
-            type="tel"
-            required
-            dir="ltr"
-            className="h-13 rounded-xl text-base border-gray-200 bg-white focus:border-portal-teal focus:ring-portal-teal text-right"
-            style={{ height: '52px' }}
-          />
-        </div>
+        <Input
+          value={form.phone}
+          onChange={(e) => set('phone', e.target.value)}
+          placeholder="טלפון נייד"
+          type="tel"
+          required
+          dir="ltr"
+          className="h-11 sm:h-[52px] rounded-lg sm:rounded-xl text-sm sm:text-base border-gray-200 bg-white focus:border-portal-teal focus:ring-portal-teal text-right"
+        />
 
-        {error && <p className="text-red-400 text-sm text-center font-medium">{error}</p>}
+        {error && <p className="text-red-400 text-xs sm:text-sm text-center font-medium">{error}</p>}
 
         <Button
           type="submit"
           disabled={loading}
-          className="w-full rounded-2xl text-lg font-bold shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+          className="w-full rounded-lg sm:rounded-2xl text-sm sm:text-lg font-bold shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
           style={{
-            height: '56px',
+            height: '44px',
             backgroundColor: '#F59E0B',
             color: '#1E3A5F',
-            fontSize: '18px',
+            fontSize: 'clamp(14px, 2vw, 18px)',
           }}
         >
           {loading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
           ) : (
             <>
-              <Phone className="ml-2 h-5 w-5" />
-              {ctaText}
+              <Phone className="ml-1.5 h-4 w-4 sm:h-5 sm:w-5" />
+              <span className="hidden sm:inline">{ctaText}</span>
+              <span className="sm:hidden">קבלו הצעה</span>
             </>
           )}
         </Button>

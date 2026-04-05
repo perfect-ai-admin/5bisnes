@@ -406,46 +406,36 @@ export default function OsekPaturSteps() {
             }} />
           </div>
 
-          <div className="relative max-w-6xl mx-auto px-4 py-10 md:py-16">
-            <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-start">
+          <div className="relative max-w-6xl mx-auto px-4 py-4 sm:py-6 md:py-16">
+            <div className="grid md:grid-cols-2 gap-3 md:gap-12 items-start">
               {/* Content */}
               <div className="order-1">
-                <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-5">
-                  <BookOpen className="w-4 h-4 text-yellow-400" />
-                  <span className="text-white/90 text-sm font-medium">המדריך המלא לפתיחת עוסק פטור</span>
+                <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 mb-2 md:mb-5">
+                  <BookOpen className="w-3.5 h-3.5 text-yellow-400" />
+                  <span className="text-white/90 text-xs md:text-sm font-medium">המדריך המלא</span>
                 </div>
 
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight mb-5">
+                <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-white leading-tight mb-2 md:mb-5">
                   איך פותחים עוסק פטור
                   <br />
-                  <span className="text-2xl sm:text-3xl md:text-4xl" style={{ color: '#F59E0B' }}>בישראל?</span>
-                  <br />
-                  <span className="text-xl sm:text-2xl md:text-3xl font-bold text-white/80">המדריך המלא + ליווי מקצועי בתהליך</span>
+                  <span className="text-xl sm:text-2xl md:text-4xl" style={{ color: '#F59E0B' }}>בישראל?</span>
                 </h1>
 
-                <p className="text-lg md:text-xl text-white/85 mb-4 leading-relaxed max-w-lg">
-                  בדקו האם עוסק פטור מתאים לכם וקבלו ליווי מקצועי בתהליך פתיחת העסק.
-                </p>
-                <p className="text-sm text-white/50 mb-6 max-w-lg">
-                  פרפקט וואן היא חברה פרטית לליווי עסקי המסייעת לעצמאים בתהליך פתיחת העסק מול הרשויות.
-                </p>
-
-                {/* Trust badges */}
-                <div className="flex flex-wrap gap-x-5 gap-y-2 mb-6">
-                  {[
-                    'ליווי מקצועי צמוד',
-                    'חיסכון בזמן ובטעויות',
-                    'שירות פרטי ואמין',
-                  ].map((text, i) => (
-                    <div key={i} className="flex items-center gap-2 text-white/80 text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-green-400" />
-                      <span>{text}</span>
-                    </div>
-                  ))}
+                {/* Mobile: Form right after hero text */}
+                <div className="md:hidden mb-3">
+                  <div className="bg-white rounded-2xl shadow-xl p-5">
+                    <StepsLeadForm
+                      id="hero-lead-form-mobile"
+                      variant="hero"
+                      title="בדקו איך לפתוח עוסק פטור"
+                      subtitle="בדיקה חינם"
+                      ctaText="קבלו ליווי עכשיו"
+                    />
+                  </div>
                 </div>
 
-                {/* Social proof */}
-                <div className="hidden md:flex items-center gap-3 text-white/60 text-sm">
+                {/* Desktop: Social proof */}
+                <div className="hidden md:flex items-center gap-3 text-white/60 text-sm mb-6">
                   <div className="flex -space-x-2 space-x-reverse">
                     {['י', 'ד', 'ש', 'מ'].map((letter, i) => (
                       <div key={i} className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-white text-xs font-bold">
@@ -457,15 +447,15 @@ export default function OsekPaturSteps() {
                 </div>
               </div>
 
-              {/* Form - Above The Fold */}
-              <div className="order-2">
+              {/* Form - Desktop only */}
+              <div className="hidden md:block order-2">
                 <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md mx-auto md:mx-0">
                   <StepsLeadForm
                     id="hero-lead-form"
                     variant="hero"
                     title="בדקו איך לפתוח עוסק פטור"
-                    subtitle="השאירו פרטים ונחזור אליכם עם הכוונה אישית"
-                    ctaText="קבלו ליווי לפתיחת עוסק פטור"
+                    subtitle="בדיקה חינם + הכוונה אישית"
+                    ctaText="קבלו ליווי עכשיו"
                   />
                 </div>
               </div>

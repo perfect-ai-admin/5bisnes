@@ -85,13 +85,13 @@ function LeadForm({ id, variant = 'hero', title, subtitle, ctaText = 'קבלו �
         <p className={`text-sm text-center mb-4 ${subtitleClass}`}>{subtitle}</p>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-2.5">
         <Input
           value={form.name}
           onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
           placeholder="שם מלא"
           required
-          className={`h-13 rounded-xl text-base ${inputClass}`}
+          className={`h-11 sm:h-[52px] rounded-lg sm:rounded-xl text-sm sm:text-base ${inputClass}`}
         />
         <Input
           value={form.phone}
@@ -99,22 +99,25 @@ function LeadForm({ id, variant = 'hero', title, subtitle, ctaText = 'קבלו �
           placeholder="טלפון"
           type="tel"
           required
-          className={`h-13 rounded-xl text-base ${inputClass}`}
+          className={`h-11 sm:h-[52px] rounded-lg sm:rounded-xl text-sm sm:text-base ${inputClass}`}
         />
         <Button
           type="submit"
           disabled={loading}
-          className="w-full h-14 rounded-xl text-lg font-bold bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/25 transition-all"
+          className="w-full h-11 sm:h-14 rounded-lg sm:rounded-xl text-sm sm:text-lg font-bold bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/25 transition-all"
         >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : ctaText}
+          {loading ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : (
+            <span className="hidden sm:inline">{ctaText}</span>
+          )}
+          {!loading && <span className="sm:hidden">בדוק עכשיו</span>}
         </Button>
       </form>
 
-      {error && <p className="text-red-500 text-sm text-center mt-2">{error}</p>}
+      {error && <p className="text-red-500 text-xs sm:text-sm text-center mt-2">{error}</p>}
 
-      <div className={`flex items-center justify-center gap-4 mt-3 text-xs ${trustClass}`}>
-        <span className="inline-flex items-center gap-1"><Shield className="w-3.5 h-3.5" />בדיקה ללא התחייבות</span>
-        <span className="inline-flex items-center gap-1"><Clock className="w-3.5 h-3.5" />מענה תוך דקות</span>
+      <div className={`hidden sm:flex items-center justify-center gap-3 mt-2 text-xs ${trustClass}`}>
+        <span className="inline-flex items-center gap-1"><Shield className="w-3 h-3" />בדיקה ללא התחייבות</span>
+        <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" />מענה בדקות</span>
       </div>
     </div>
   );

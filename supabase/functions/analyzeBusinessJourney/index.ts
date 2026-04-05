@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     const customer = await getCustomer(req);
     if (!customer) {
       console.log('[analyzeBusinessJourney] No customer found for auth token');
-      return errorResponse('Unauthorized', 401);
+      return errorResponse('Unauthorized', 401, req);
     }
     console.log('[analyzeBusinessJourney] Customer:', customer.id);
 
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     const { answers } = body;
 
     if (!answers || typeof answers !== 'object') {
-      return errorResponse('answers object is required', 400);
+      return errorResponse('answers object is required', 400, req);
     }
 
     // Build a readable summary for OpenAI
@@ -189,7 +189,7 @@ Based on a user's business questionnaire answers and their analyzed state, gener
 
     if (updateErr) {
       console.error('[analyzeBusinessJourney] Customer update error:', updateErr.message);
-      return errorResponse('Failed to update customer: ' + updateErr.message);
+      return errorResponse('Failed to update customer: ' + updateErr.message, 500, req);
     }
 
     console.log('[analyzeBusinessJourney] Customer updated successfully');
@@ -274,9 +274,9 @@ Based on a user's business questionnaire answers and their analyzed state, gener
         tasks_count: tasks.length,
       },
       first_goal_created: !!firstTask,
-    });
+    }, 200, req);
   } catch (error) {
     console.error('[analyzeBusinessJourney] FATAL ERROR:', (error as Error).message, (error as Error).stack);
-    return errorResponse((error as Error).message);
+    return errorResponse((error as Error).message, 500, req);
   }
 });

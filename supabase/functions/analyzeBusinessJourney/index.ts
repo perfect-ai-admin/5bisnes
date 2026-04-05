@@ -80,8 +80,12 @@ Return ONLY valid JSON, no markdown or explanation.`;
     let businessState: Record<string, unknown> = {};
     try {
       businessState = JSON.parse(analysisContent);
-    } catch {
-      console.warn('[analyzeBusinessJourney] Failed to parse analysis JSON, using empty');
+      if (!businessState.stage) {
+        throw new Error('Missing "stage" in analysis response');
+      }
+    } catch (e) {
+      console.error('[analyzeBusinessJourney] Failed to parse analysis JSON:', analysisContent, (e as Error).message);
+      throw new Error('Failed to analyze business state');
     }
 
     console.log('[analyzeBusinessJourney] Analysis done. Stage:', businessState.stage);
@@ -131,8 +135,12 @@ Based on a user's business questionnaire answers and their analyzed state, gener
     let businessPlan: Record<string, unknown> = { tasks: [], plan_name: '', plan_summary: '' };
     try {
       businessPlan = JSON.parse(planContent);
-    } catch {
-      console.warn('[analyzeBusinessJourney] Failed to parse plan JSON, using empty');
+      if (!businessPlan.tasks || !Array.isArray(businessPlan.tasks) || businessPlan.tasks.length === 0) {
+        throw new Error('Missing or empty "tasks" in plan response');
+      }
+    } catch (e) {
+      console.error('[analyzeBusinessJourney] Failed to parse plan JSON:', planContent, (e as Error).message);
+      throw new Error('Failed to generate business plan');
     }
 
     console.log('[analyzeBusinessJourney] Plan done. Tasks:', (businessPlan.tasks as any[])?.length || 0);

@@ -2,7 +2,7 @@
 // Uses direct fetch to OpenAI (no npm:openai dependency)
 // Fixed: activity_log column names, robust error handling
 
-import { supabaseAdmin, getCustomer, corsHeaders, jsonResponse, errorResponse } from '../_shared/supabaseAdmin.ts';
+import { supabaseAdmin, getCustomer, corsHeaders, getCorsHeaders, jsonResponse, errorResponse } from '../_shared/supabaseAdmin.ts';
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
@@ -44,7 +44,7 @@ async function callOpenAI(messages: { role: string; content: string }[], maxToke
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: getCorsHeaders(req) });
 
   try {
     // Step 0: Get customer

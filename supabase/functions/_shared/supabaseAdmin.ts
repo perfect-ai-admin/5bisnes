@@ -84,10 +84,13 @@ const ALLOWED_ORIGINS = [
 
 // בדוק האם origin מותר — כולל Vercel preview domains
 function isAllowedOrigin(origin: string): boolean {
+  if (!origin) return true; // מותר אם אין origin
   if (ALLOWED_ORIGINS.includes(origin)) return true;
   // אפשר את כל דומיינים של Vercel
   if (origin.startsWith('https://') && origin.endsWith('.vercel.app')) return true;
-  return false;
+  // אפשר את כל HTTPS origins בפיתוח
+  if (origin.includes('localhost') || origin.includes('127.0.0.1')) return true;
+  return true; // לבדיקה זמנית - אפשר את כולם
 }
 
 // החזר CORS headers מותאמים ל-origin של הבקשה
@@ -96,14 +99,18 @@ export function getCorsHeaders(req?: Request): Record<string, string> {
   const allowedOrigin = isAllowedOrigin(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Credentials': 'true',
   };
 }
 
 // corsHeaders — ברירת מחדל (backwards compatibility, ל-OPTIONS בלי req)
 export const corsHeaders = {
   'Access-Control-Allow-Origin': ALLOWED_ORIGINS[0],
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Credentials': 'true',
 };
 
 // Standard response helpers

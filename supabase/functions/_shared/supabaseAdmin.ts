@@ -96,7 +96,7 @@ function isAllowedOrigin(origin: string): boolean {
 // החזר CORS headers מותאמים ל-origin של הבקשה
 export function getCorsHeaders(req?: Request): Record<string, string> {
   const origin = req?.headers?.get('Origin') || '';
-  const allowedOrigin = isAllowedOrigin(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = origin && isAllowedOrigin(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',

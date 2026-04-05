@@ -6,6 +6,15 @@ import { supabaseAdmin, getCustomer, corsHeaders, jsonResponse, errorResponse } 
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
+// Generate UUID v4
+function generateUUID(): string {
+  return self.crypto.getRandomValues(new Uint8Array(16)).reduce((a, b) => {
+    if (b < 16) a += '0';
+    a += b.toString(16);
+    return a;
+  }, '').replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, '$1-$2-$3-$4-$5');
+}
+
 // Direct OpenAI call via fetch (avoids npm:openai import issues in Deno)
 async function callOpenAI(messages: { role: string; content: string }[], maxTokens = 500): Promise<string> {
   if (!OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured');
@@ -206,7 +215,7 @@ Based on a user's business questionnaire answers and their analyzed state, gener
             progress_percent: 0,
             current_step: 1,
             tasks: tasks.slice(0, 3).map((t: any) => ({
-              id: crypto.randomUUID(),
+              id: generateUUID(),
               title: t.title,
               type: t.task_type?.toLowerCase() || 'action',
               why: t.description,

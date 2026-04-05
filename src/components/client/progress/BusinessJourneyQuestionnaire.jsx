@@ -332,8 +332,12 @@ export default function BusinessJourneyQuestionnaire({ onComplete, userId }) {
       }
 
       // Direct fetch to edge function (bypass supabase.functions.invoke)
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://fnsnnezhikgqajdbtwoa.supabase.co';
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !anonKey) {
+        throw new Error('Supabase configuration missing');
+      }
 
       const response = await fetch(`${supabaseUrl}/functions/v1/analyzeBusinessJourney`, {
         method: 'POST',

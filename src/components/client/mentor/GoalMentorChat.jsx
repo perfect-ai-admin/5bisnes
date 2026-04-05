@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useGoalMentorWebhook } from '@/components/hooks/useGoalMentorWebhook';
+import { useGoalMentor } from '@/components/hooks/useGoalMentor';
 import GoalCompletionModal from '@/components/client/journey/GoalCompletionModal';
 import {
   Send,
@@ -23,7 +23,7 @@ export default function GoalMentorChat({ goalCode, goalData, customerGoalId, onG
   const [messageText, setMessageText] = useState('');
   const messagesEndRef = useRef(null);
 
-  const mentor = useGoalMentorWebhook(user?.phone, user?.email, user?.full_name);
+  const mentor = useGoalMentor(user?.phone, user?.email, user?.full_name);
 
   // Load user data
   useEffect(() => {
@@ -47,7 +47,7 @@ export default function GoalMentorChat({ goalCode, goalData, customerGoalId, onG
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!messageText.trim() || mentor.loading) return;
+    if (!messageText.trim() || mentor.isLoading) return;
 
     const text = messageText;
     setMessageText('');
@@ -111,10 +111,10 @@ export default function GoalMentorChat({ goalCode, goalData, customerGoalId, onG
               {!mentor.goalState && (
                 <Button
                   onClick={handleStartGoal}
-                  disabled={mentor.loading}
+                  disabled={mentor.isLoading}
                   className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
                 >
-                  {mentor.loading ? (
+                  {mentor.isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       טוען...
@@ -169,17 +169,17 @@ export default function GoalMentorChat({ goalCode, goalData, customerGoalId, onG
             value={messageText}
             onChange={(e) => setMessageText(e.target.value)}
             placeholder="כתוב כאן..."
-            disabled={mentor.loading}
+            disabled={mentor.isLoading}
             className="flex-1 bg-gray-50 border-gray-200 rounded-full"
             autoFocus
           />
           <Button
             type="submit"
-            disabled={mentor.loading || !messageText.trim()}
+            disabled={mentor.isLoading || !messageText.trim()}
             size="icon"
             className="bg-blue-600 hover:bg-blue-700 rounded-full flex-shrink-0"
           >
-            {mentor.loading ? (
+            {mentor.isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Send className="w-4 h-4" />

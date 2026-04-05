@@ -138,6 +138,7 @@ Based on a user's business questionnaire answers and their analyzed state, gener
     console.log('[analyzeBusinessJourney] Calling OpenAI for plan...');
 
     const planContent = await callOpenAI([
+      { role: 'system', content: 'You are a world-class Israeli business mentor AI that always responds with valid JSON.' },
       { role: 'user', content: planPrompt }
     ], 1500);
 

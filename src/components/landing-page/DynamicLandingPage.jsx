@@ -8,8 +8,9 @@ import { Link } from 'react-router-dom';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
 import { motion, AnimatePresence } from 'framer-motion';
-import { invokeFunction } from '@/api/supabaseClient';
 import { toast } from 'sonner';
+
+const LEAD_WEBHOOK_URL = import.meta.env.VITE_N8N_LEAD_WEBHOOK_URL || 'https://n8n.perfect-1.one/webhook/perfect-one-incoming';
 
 // --- Theme & Style Utilities ---
 const getContrastColor = (hexColor) => {
@@ -83,20 +84,24 @@ export default function DynamicLandingPage({ data, isThumbnail = false }) {
 
         setIsSubmitting(true);
         try {
-            const response = await invokeFunction('submitLeadToN8N', {
-                name: formData.name,
-                phone: formData.phone,
-                email: formData.email,
-                message: formData.message,
-                pageSlug: slug,
-                businessName: business_name
+            const response = await fetch(LEAD_WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: formData.name,
+                    phone: formData.phone,
+                    email: formData.email,
+                    message: formData.message,
+                    pageSlug: slug,
+                    businessName: business_name
+                })
             });
 
-            if (response.success) {
+            if (response.ok) {
                 toast.success('הלידים שלך נשלחו בהצלחה!');
-                setFormData({ name: '', phone: '', email: '', message: '' });
+                setFormData({ name: '', phone: '', email: '', message: '', consent: false });
             } else {
-                toast.error('שגיאה בשליחת הלידים: ' + response.error);
+                toast.error('שגיאה בשליחת הלידים');
             }
         } catch (error) {
             console.error('Form submission error:', error);
